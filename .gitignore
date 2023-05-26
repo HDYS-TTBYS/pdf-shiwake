@@ -1,0 +1,6 @@
+*.pdf
+*.jpg
+__pycache__
+include
+lib
+Scripts
