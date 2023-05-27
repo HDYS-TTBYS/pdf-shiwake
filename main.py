@@ -9,6 +9,7 @@ import cv2
 from utils import list_pdfs, tilt_correction, delete_straight_line
 from convert import cv2pil
 import numpy as np
+import os
 
 # format="%(asctime)s - %(levelname)s:%(name)s - %(message)s"を　追加
 logging.basicConfig(
@@ -84,6 +85,12 @@ if __name__ == "__main__":
     except:
         logging.error("設定ファイルが見つかりません。")
         sys.exit(1)
+    
+    # フォルダを作成する
+    for dir in config.sorting_rules:
+        if not os.path.exists(dir.dest_dir):
+            os.mkdir(dir.dest_dir)
+            logging.info(f"{dir.dest_dir}フォルダを作成しました。")
 
     pdfs = list_pdfs()
     logging.info(" ".join(pdfs) + " のファイルが見つかりました。")
