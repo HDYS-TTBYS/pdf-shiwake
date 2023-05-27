@@ -4,3 +4,4 @@ __pycache__
 include
 lib
 Scripts
+*.log

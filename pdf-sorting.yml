@@ -1,13 +1,12 @@
 preprocessing: #前処理
-  image_debug: true #trueなら画像を出力するだけ
+  image_debug: false #trueなら画像を出力する
   dpi: 600 #画像解像度
+  min_line_length: 10 #直線を検知する長さの幅との割合(1~100)
 
 read: #読み取り
-  top_x: 0 #読み取りピクセル
-  top_y: 0 #読み取りピクセル
-  buttom_x: 0 #読み取りピクセル
-  buttom_y: 0 #読み取りピクセル すべて0なら全体
-  lang: "jpn" #言語
+  reading_position: [0, 0, 0, 0] #読み取りピクセル すべて0なら全体 [top_x, top_y, buttom_x, buttom_y]
+  lang: "jpn" #言語 日本語:jpn 英語:eng
+  accuracy: 6 #読み取り精度 1~6 6が一番精度が高い
   available_chars: "" #使用可能文字 ""なら無視される
 
 sorting_rules: #wordを含む場合dest_dirに移動

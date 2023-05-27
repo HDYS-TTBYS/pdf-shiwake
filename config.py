@@ -5,14 +5,13 @@ from typing import List
 class Preprocessing(BaseModel):
     image_debug: bool
     dpi: int
+    min_line_length: int
 
 
 class Read(BaseModel):
-    top_x: int
-    top_y: int
-    buttom_x: int
-    buttom_y: int
+    reading_position: List[int]
     lang: str
+    accuracy: int
     available_chars: str
 
 
