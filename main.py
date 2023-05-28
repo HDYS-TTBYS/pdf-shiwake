@@ -12,7 +12,6 @@ import os
 from pdfminer.high_level import extract_text
 import unicodedata
 
-
 def main(pdfs: str, config: Config, tool) -> None:
     for pdf in pdfs:
         reader = PdfReader(pdf)
@@ -36,18 +35,8 @@ def main(pdfs: str, config: Config, tool) -> None:
         tilt_correction_img = tilt_correction(img)
         logging.info(f"{pdf}の傾きの傾き補正が終了")
 
-        # 直線削除
-        del_line_img = delete_straight_line(
-            img=tilt_correction_img,
-            width=width,
-            min_line_length=width * (config.preprocessing.min_line_length / 100),
-        )
-        logging.info(f"{pdf}の直線除去処理が終了")
-        if config.preprocessing.image_debug:
-            cv2.imwrite(pdf + ".red_line_img" + ".jpg", del_line_img)
-
         # モノクロ・グレースケール画像へ変換（2値化前の画像処理）
-        im_gray = cv2.cvtColor(del_line_img, cv2.COLOR_BGR2GRAY)
+        im_gray = cv2.cvtColor(tilt_correction_img, cv2.COLOR_BGR2GRAY)
         # 二値化
         ret, img_thresh = cv2.threshold(im_gray, 0, 255, cv2.THRESH_OTSU)
 
@@ -100,5 +89,5 @@ if __name__ == "__main__":
             logging.info(f"{dir.dest_dir}フォルダを作成しました。")
 
     pdfs = list_pdfs()
-    logging.info(" ".join(pdfs) + " のファイルが見つかりました。")
+    logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
     main(pdfs=pdfs, config=config, tool=tool)

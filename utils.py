@@ -21,15 +21,15 @@ def scale_to_width(img, h, w, expected_height):
 
 def tilt_correction(img):
     """
-    傾き補正
+    スキャン傾き補正
     """
     height, width = img.shape[:2]
     center = (width / 2, height / 2)  # 中心座標設定
 
-    # モノクロ・グレースケール画像へ変換（2値化前の画像処理）
+    # モノクロ・グレースケール画像へ変換
     im_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # 二値化(閾値100を超えた画素を255にする。)
+    # 二値化
     ret, img_thresh = cv2.threshold(im_gray, 0, 255, cv2.THRESH_OTSU)
 
     contours, hierarchy = cv2.findContours(
@@ -57,7 +57,7 @@ def tilt_correction(img):
     return rotate_img
 
 
-def delete_straight_line(img, width :int, min_line_length=500):
+def delete_straight_line(img, width: int, min_line_length=500):
     """
     直線削除
     """
@@ -80,6 +80,8 @@ def delete_straight_line(img, width :int, min_line_length=500):
         # 赤線を引く
         # red_line_img = cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), int(width*0.002) )
         # 線を消す(白で線を引く)
-        no_lines_img = cv2.line(img, (x1,y1), (x2,y2), (255,255,255), int(width*0.002))
-        
+        no_lines_img = cv2.line(
+            img, (x1, y1), (x2, y2), (255, 255, 255), int(width * 0.002)
+        )
+
     return no_lines_img
