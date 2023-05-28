@@ -2,29 +2,55 @@ import pyocr
 import sys
 import logging
 import yaml
-from config import Config
+from config import Config, get_config
 from pypdf import PdfReader
 from convert import read_and_convert_pdf_to_image, pil2cv
 import cv2
-from utils import list_pdfs, tilt_correction, rotation, is_include_if_move
+from utils import (
+    list_pdfs,
+    tilt_correction,
+    rotation,
+    is_include_if_move,
+    create_folder,
+)
 from convert import cv2pil
 import os
 from pdfminer.high_level import extract_text
 import unicodedata
 import time
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
+import psutil
 
 
-def main(pdf: str, config: Config, tool) -> None:
+def main(pdf: str) -> None:
+    logger = logging.getLogger()
+    # tesseractを使用
+    tools = pyocr.get_available_tools()
+    if len(tools) == 0:
+        logger.error("OCRツールが見つかりません。")
+        sys.exit(1)
+    tool = tools[0]
+
+    # 設定
+    try:
+        with open("pdf-sorting.yml", "r", encoding="utf-8") as f:
+            c = yaml.safe_load(f)
+            config = Config(**c)
+    except:
+        logger.error("設定ファイルが見つかりません。")
+        sys.exit(1)
+
     reader = PdfReader(pdf)
     if len(reader.pages) > 1:
-        logging.error("1ページ以上のファイルは処理できません。")
+        logger.error("1ページ以上のファイルは処理できません。")
         return
 
     # PDF のソースコードからページのテキストを直接抽出
     text = extract_text(pdf)
     text2 = text.replace(" ", "").replace("　", "").replace("\n", "")
     normalized = unicodedata.normalize("NFKC", text2)
-    logging.info(f"{pdf}のソースコードからの抽出結果\n:{normalized}")
+    logger.info(f"{pdf}のソースコードからの抽出結果\n:{normalized}")
 
     # sorting_ruleのwordが含まれていたら移動
     is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
@@ -37,7 +63,7 @@ def main(pdf: str, config: Config, tool) -> None:
 
     # 傾き補正
     tilt_correction_img = tilt_correction(img)
-    logging.info(f"{pdf}の傾きの傾き補正が終了")
+    logger.info(f"{pdf}の傾きの傾き補正が終了")
     if config.preprocessing.image_debug:
         cv2.imwrite(pdf + ".tilt_correction_img" + ".jpg", tilt_correction_img)
 
@@ -65,7 +91,7 @@ def main(pdf: str, config: Config, tool) -> None:
     )
     result2 = result.replace(" ", "").replace("　", "").replace("\n", "")
     normalized = unicodedata.normalize("NFKC", result2)
-    logging.info(f"{pdf}のocr正方向読み取り結果:\n{normalized}")
+    logger.info(f"{pdf}のocr正方向読み取り結果:\n{normalized}")
     # sorting_ruleのwordが含まれていたら移動
     is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
     # 処理を抜ける
@@ -78,7 +104,7 @@ def main(pdf: str, config: Config, tool) -> None:
     )
     result2 = result.replace(" ", "").replace("　", "").replace("\n", "")
     normalized = unicodedata.normalize("NFKC", result2)
-    logging.info(f"{pdf}のocr時計回りに90度回転読み取り結果:\n{normalized}")
+    logger.info(f"{pdf}のocr時計回りに90度回転読み取り結果:\n{normalized}")
     # sorting_ruleのwordが含まれていたら移動
     is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
     # 処理を抜ける
@@ -88,41 +114,48 @@ def main(pdf: str, config: Config, tool) -> None:
     print(f"{pdf}は仕分け条件に該当しませんでした。")
 
 
+def listener(q, configurer):
+    # ログリスナー
+    configurer()
+    while True:
+        logger = logging.getLogger()
+        logger.handle(q.get())
+
+
+def worker_configurer(q):
+    h = logging.handlers.QueueHandler(q)
+    root = logging.getLogger()
+    root.addHandler(h)
+    root.setLevel(logging.DEBUG)
+
+
 if __name__ == "__main__":
     # ロギング
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(levelname)s:%(name)s - %(message)s",
+        format="%(asctime)s %(processName)-10s %(name)-10s %(levelname)-8s %(message)s",
         filename="pdf-sorting.log",
         encoding="utf-8",
     )
 
-    # tesseractを使用
-    tools = pyocr.get_available_tools()
-    if len(tools) == 0:
-        logging.error("OCRツールが見つかりません。")
-        sys.exit(1)
-    tool = tools[0]
-
     # 設定
-    try:
-        with open("pdf-sorting.yml", "r", encoding="utf-8") as f:
-            c = yaml.safe_load(f)
-            config = Config(**c)
-    except:
-        logging.error("設定ファイルが見つかりません。")
-        sys.exit(1)
+    config = get_config()
 
     # フォルダを作成する
-    for dir in config.sorting_rules:
-        if not os.path.exists(dir.dest_dir):
-            os.mkdir(dir.dest_dir)
-            logging.info(f"{dir.dest_dir}フォルダを作成しました。")
+    create_folder(config)
 
     pdfs = list_pdfs()
     logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
+
     print(f"{time.strftime('%Y/%m/%d %H:%M:%S')}:処理を開始します。")
-    for pdf in pdfs:
-        main(pdf=pdf, config=config, tool=tool)
+
+    q = multiprocessing.Queue()
+    with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
+        args = []
+        for pdf in pdfs:
+            args.append([pdf])
+
+        pool.starmap(main, args)
+
     logging.info("処理が完了しました。")
     print(f"{time.strftime('%Y/%m/%d %H:%M:%S')}:処理が完了しました。")

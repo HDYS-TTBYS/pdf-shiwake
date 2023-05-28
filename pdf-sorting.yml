@@ -1,5 +1,5 @@
 preprocessing: #前処理
-  image_debug: true #trueなら画像を出力する
+  image_debug: false #trueなら画像を出力する
   dpi: 600 #画像解像度
   min_line_length: 10 #直線を検知する長さの幅との割合(1~100)
 

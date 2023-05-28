@@ -124,3 +124,10 @@ def is_include_if_move(pdf: str,normalized:str, config: Config)-> bool:
             is_include = True
             break
     return is_include
+
+def create_folder(config:Config):
+    # フォルダを作成する
+    for dir in config.sorting_rules:
+        if not os.path.exists(dir.dest_dir):
+            os.mkdir(dir.dest_dir)
+            logging.info(f"{dir.dest_dir}フォルダを作成しました。")
