@@ -1,7 +1,10 @@
 import glob
 import cv2
 import numpy as np
-
+from config import Config
+import shutil
+import os
+import logging
 
 def list_pdfs() -> str:
     """
@@ -52,7 +55,27 @@ def tilt_correction(img):
 
     trans = cv2.getRotationMatrix2D(center, angle, scale=1)  # 変換行列の算出
 
-    rotate_img = cv2.warpAffine(img, trans, (width, height))  # 元画像を回転
+    rotate_img = cv2.warpAffine(
+        img, trans, (width, height), flags=cv2.INTER_CUBIC
+    )  # 元画像を回転
+
+    return rotate_img
+
+
+def rotation(img):
+    """
+    画像を時計回りに90度回転する
+    """
+    h, w = img.shape[:2]
+    center = (w / 2, h / 2)  # 中心座標設定
+    rotation_matrix = cv2.getRotationMatrix2D(center, -90, scale=1)  # 変換行列の算出
+    # 平行移動を加える (rotation + translation)
+    affine_matrix = rotation_matrix.copy()
+    affine_matrix[0][2] = affine_matrix[0][2] - w / 2 + h / 2
+    affine_matrix[1][2] = affine_matrix[1][2] - h / 2 + w / 2
+    rotate_img = cv2.warpAffine(
+        img, affine_matrix, (h, w), flags=cv2.INTER_CUBIC
+    )  # 元画像を回転
 
     return rotate_img
 
@@ -85,3 +108,19 @@ def delete_straight_line(img, width: int, min_line_length=500):
         )
 
     return no_lines_img
+
+
+def is_include_if_move(pdf: str,normalized:str, config: Config)-> bool:
+    """
+    sorting_ruleのwordが含まれていたら移動
+    """
+    is_include = False
+    for rule in config.sorting_rules:
+        if rule.word in normalized:
+            dist_path = os.path.join(rule.dest_dir, pdf)
+            shutil.move(pdf, dist_path)
+            logging.info(f"{pdf}を{rule.dest_dir}に移動しました。")
+            print(f"{pdf}を{rule.dest_dir}に移動しました。")
+            is_include = True
+            break
+    return is_include

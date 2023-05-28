@@ -1,14 +1,44 @@
 preprocessing: #前処理
-  image_debug: false #trueなら画像を出力する
+  image_debug: true #trueなら画像を出力する
   dpi: 600 #画像解像度
   min_line_length: 10 #直線を検知する長さの幅との割合(1~100)
 
 read: #読み取り
-  reading_position: [0, 0, 0, 0] #読み取りピクセル すべて0なら全体 [top_x, top_y, buttom_x, buttom_y]
+  reading_position: [0, 0, 0, 0] #読み取りピクセル すべて0なら全体 [top_x, top_y, buttom_x, buttom_y] *ペイントで確認する
   lang: "jpn" #言語 日本語:jpn 英語:eng
   accuracy: 6 #読み取り精度 1~6 6が一番精度が高い
   available_chars: "" #使用可能文字 ""なら無視される
 
 sorting_rules: #wordを含む場合dest_dirに移動
-  - word: "行程"
+  - word: "行程チェックシート"
     dest_dir: "行程チェックシート"
+  - word: "工程チェックシート"
+    dest_dir: "行程チェックシート"
+  - word: "工程チエックシート"
+    dest_dir: "行程チェックシート"
+  - word: "工程チエツクシート"
+    dest_dir: "行程チェックシート"
+  - word: "工程チエツクシ"
+    dest_dir: "行程チェックシート"
+  - word: "工程チクシート"
+    dest_dir: "行程チェックシート"
+  - word: "チェックシート"
+    dest_dir: "行程チェックシート"
+
+  - word: "清掃実施証明書"
+    dest_dir: "清掃実施証明書"
+
+  - word: "検査成績表"
+    dest_dir: "検査成績表"
+  - word: "侯査成績表"
+    dest_dir: "検査成績表"
+  - word: "検人査成績表"
+    dest_dir: "検査成績表"
+  - word: "人司査成績表員"
+    dest_dir: "検査成績表"
+
+  - word: "規格上下限測定結果"
+    dest_dir: "規格上下限測定結果"
+
+  - word: "表示倍率"
+    dest_dir: "輪郭形状データ"
