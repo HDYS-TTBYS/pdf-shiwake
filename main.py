@@ -8,22 +8,9 @@ from convert import read_and_convert_pdf_to_image, pil2cv
 import cv2
 from utils import list_pdfs, tilt_correction, delete_straight_line
 from convert import cv2pil
-import numpy as np
 import os
-
-# format="%(asctime)s - %(levelname)s:%(name)s - %(message)s"を　追加
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s:%(name)s - %(message)s",
-    filename="pdf-sorting.log",
-    encoding="utf-8",
-)
-
-# logging.debug("debug")
-# logging.info("info")
-# logging.warning("warning")
-# logging.error("error")
-# logging.critical("critical")
+from pdfminer.high_level import extract_text
+import unicodedata
 
 
 def main(pdfs: str, config: Config, tool) -> None:
@@ -32,6 +19,12 @@ def main(pdfs: str, config: Config, tool) -> None:
         if len(reader.pages) > 1:
             logging.error("1ページ以上のファイルは処理できません。")
             return
+
+        # PDF のソースコードからページのテキストを直接抽出
+        text = extract_text(pdf)
+        text2 = text.replace(" ", "").replace("　", "").replace("\n", "")
+        normalized = unicodedata.normalize("NFKC", text2)
+        logging.info(f"{pdf}のソースコードからの抽出結果\n:{normalized}")
 
         image = read_and_convert_pdf_to_image(
             pdf_path=pdf, dpi=config.preprocessing.dpi
@@ -64,11 +57,26 @@ def main(pdfs: str, config: Config, tool) -> None:
             result: str = tool.image_to_string(
                 cv2pil(img_thresh), lang=config.read.lang, builder=builder
             )
-            r = result.replace(" ", "").replace("　", "")
-            logging.info(f"{pdf}の読み取り結果:\n{r}")
+            result2 = result.replace(" ", "").replace("　", "").replace("\n", "")
+            normalized = unicodedata.normalize("NFKC", result2)
+            logging.info(f"{pdf}のocr読み取り結果:\n{normalized}")
 
 
 if __name__ == "__main__":
+    # format="%(asctime)s - %(levelname)s:%(name)s - %(message)s"を　追加
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s:%(name)s - %(message)s",
+        filename="pdf-sorting.log",
+        encoding="utf-8",
+    )
+
+    # logging.debug("debug")
+    # logging.info("info")
+    # logging.warning("warning")
+    # logging.error("error")
+    # logging.critical("critical")
+
     # tesseractを使用
     tools = pyocr.get_available_tools()
     if len(tools) == 0:
@@ -81,11 +89,10 @@ if __name__ == "__main__":
         with open("pdf-sorting.yml", "r", encoding="utf-8") as f:
             c = yaml.safe_load(f)
             config = Config(**c)
-            # print(config)
     except:
         logging.error("設定ファイルが見つかりません。")
         sys.exit(1)
-    
+
     # フォルダを作成する
     for dir in config.sorting_rules:
         if not os.path.exists(dir.dest_dir):
