@@ -14,21 +14,20 @@ from utils import (
     create_folder,
 )
 from convert import cv2pil
-import os
 from pdfminer.high_level import extract_text
 import unicodedata
-import time
-from concurrent.futures import ProcessPoolExecutor
+import os
 import multiprocessing
 import psutil
+from myloggin import setup_logger_process, setup_worker_logger
 
 
-def main(pdf: str) -> None:
-    logger = logging.getLogger()
+def main(pdf: str, q: multiprocessing.Queue) -> None:
+    setup_worker_logger(q)
     # tesseractを使用
     tools = pyocr.get_available_tools()
     if len(tools) == 0:
-        logger.error("OCRツールが見つかりません。")
+        logging.critical("OCRツールが見つかりません。")
         sys.exit(1)
     tool = tools[0]
 
@@ -38,19 +37,19 @@ def main(pdf: str) -> None:
             c = yaml.safe_load(f)
             config = Config(**c)
     except:
-        logger.error("設定ファイルが見つかりません。")
+        logging.error("設定ファイルが見つかりません。")
         sys.exit(1)
 
     reader = PdfReader(pdf)
     if len(reader.pages) > 1:
-        logger.error("1ページ以上のファイルは処理できません。")
+        logging.error("1ページ以上のファイルは処理できません。")
         return
 
     # PDF のソースコードからページのテキストを直接抽出
     text = extract_text(pdf)
     text2 = text.replace(" ", "").replace("　", "").replace("\n", "")
     normalized = unicodedata.normalize("NFKC", text2)
-    logger.info(f"{pdf}のソースコードからの抽出結果\n:{normalized}")
+    logging.info(f"{pdf}のソースコードからの抽出結果\n:{normalized}")
 
     # sorting_ruleのwordが含まれていたら移動
     is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
@@ -63,7 +62,7 @@ def main(pdf: str) -> None:
 
     # 傾き補正
     tilt_correction_img = tilt_correction(img)
-    logger.info(f"{pdf}の傾きの傾き補正が終了")
+    logging.info(f"{pdf}の傾きの傾き補正が終了")
     if config.preprocessing.image_debug:
         cv2.imwrite(pdf + ".tilt_correction_img" + ".jpg", tilt_correction_img)
 
@@ -91,7 +90,7 @@ def main(pdf: str) -> None:
     )
     result2 = result.replace(" ", "").replace("　", "").replace("\n", "")
     normalized = unicodedata.normalize("NFKC", result2)
-    logger.info(f"{pdf}のocr正方向読み取り結果:\n{normalized}")
+    logging.info(f"{pdf}のocr正方向読み取り結果:\n{normalized}")
     # sorting_ruleのwordが含まれていたら移動
     is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
     # 処理を抜ける
@@ -104,7 +103,7 @@ def main(pdf: str) -> None:
     )
     result2 = result.replace(" ", "").replace("　", "").replace("\n", "")
     normalized = unicodedata.normalize("NFKC", result2)
-    logger.info(f"{pdf}のocr時計回りに90度回転読み取り結果:\n{normalized}")
+    logging.info(f"{pdf}のocr時計回りに90度回転読み取り結果:\n{normalized}")
     # sorting_ruleのwordが含まれていたら移動
     is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
     # 処理を抜ける
@@ -114,29 +113,13 @@ def main(pdf: str) -> None:
     print(f"{pdf}は仕分け条件に該当しませんでした。")
 
 
-def listener(q, configurer):
-    # ログリスナー
-    configurer()
-    while True:
-        logger = logging.getLogger()
-        logger.handle(q.get())
-
-
-def worker_configurer(q):
-    h = logging.handlers.QueueHandler(q)
-    root = logging.getLogger()
-    root.addHandler(h)
-    root.setLevel(logging.DEBUG)
-
-
 if __name__ == "__main__":
     # ロギング
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(processName)-10s %(name)-10s %(levelname)-8s %(message)s",
-        filename="pdf-sorting.log",
-        encoding="utf-8",
-    )
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+    log_q, listener = setup_logger_process()
+    listener.start()
+    setup_worker_logger(log_q)
 
     # 設定
     config = get_config()
@@ -147,15 +130,15 @@ if __name__ == "__main__":
     pdfs = list_pdfs()
     logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
 
-    print(f"{time.strftime('%Y/%m/%d %H:%M:%S')}:処理を開始します。")
-
-    q = multiprocessing.Queue()
-    with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
-        args = []
+    args = []
+    for pdf in pdfs:
+        args.append((pdf, log_q))
+    if config.multiprocessing.use:  # マルチプロセス
+        with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
+            pool.starmap(main, args)
+    else:  # 逐次処理
         for pdf in pdfs:
-            args.append([pdf])
-
-        pool.starmap(main, args)
+            main(pdf, log_q)
+    listener.stop()
 
     logging.info("処理が完了しました。")
-    print(f"{time.strftime('%Y/%m/%d %H:%M:%S')}:処理が完了しました。")

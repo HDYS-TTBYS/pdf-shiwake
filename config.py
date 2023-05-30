@@ -4,6 +4,11 @@ import yaml
 import logging
 import sys
 
+
+class Multiprocessing(BaseModel):
+    use: bool
+
+
 class Preprocessing(BaseModel):
     image_debug: bool
     dpi: int
@@ -23,9 +28,11 @@ class SortingRules(BaseModel):
 
 
 class Config(BaseModel):
+    multiprocessing: Multiprocessing
     preprocessing: Preprocessing
     read: Read
     sorting_rules: List[SortingRules]
+
 
 def get_config():
     try:
@@ -34,5 +41,5 @@ def get_config():
             config = Config(**c)
             return config
     except:
-        logging.error("設定ファイルが見つかりません。")
+        logging.critical("設定ファイルが見つかりません。")
         sys.exit(1)

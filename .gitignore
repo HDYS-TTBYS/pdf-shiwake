@@ -4,7 +4,7 @@ __pycache__
 include
 lib
 Scripts
-*.log
+*.log*
 輪郭形状データ
 清掃実施証明書
 行程チェックシート
