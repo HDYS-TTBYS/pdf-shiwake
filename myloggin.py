@@ -31,8 +31,8 @@ def setup_logger_process():
 
 def setup_worker_logger(log_queue: multiprocessing.Queue):
     # ログの取得・Queueの登録
-    logger.setLevel(logging.INFO)  # loggerへレベル設定（任意）
     logger = logging.getLogger()  # loggerの取得
+    logger.setLevel(logging.INFO)  # loggerへレベル設定（任意）
     if not logger.hasHandlers():
         handler = logging.handlers.QueueHandler(log_queue)  # QueueHandlerの生成
         logger.addHandler(handler)  # loggerへhandlerを登録
