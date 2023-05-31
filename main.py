@@ -10,8 +10,9 @@ from utils import (
     list_pdfs,
     tilt_correction,
     rotation,
-    is_include_if_move,
+    is_include_word,
     create_folder,
+    pdf_move,
 )
 from convert import cv2pil
 from pdfminer.high_level import extract_text
@@ -32,13 +33,7 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
     tool = tools[0]
 
     # 設定
-    try:
-        with open("pdf-sorting.yml", "r", encoding="utf-8") as f:
-            c = yaml.safe_load(f)
-            config = Config(**c)
-    except:
-        logging.error("設定ファイルが見つかりません。")
-        sys.exit(1)
+    config = get_config()
 
     reader = PdfReader(pdf)
     if len(reader.pages) > 1:
@@ -46,17 +41,19 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
         return
 
     # PDF のソースコードからページのテキストを直接抽出
-    text = extract_text(pdf)
-    text2 = text.replace(" ", "").replace("　", "").replace("\n", "")
-    normalized = unicodedata.normalize("NFKC", text2)
+    text = extract_text(pdf).replace(" ", "").replace("　", "").replace("\n", "")
+    normalized = unicodedata.normalize("NFKC", text)
     logging.info(f"{pdf}のソースコードからの抽出結果\n:{normalized}")
 
-    # sorting_ruleのwordが含まれていたら移動
-    is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
-    # 処理を抜ける
+    # sorting_ruleのwordが含まれていたら
+    is_include = is_include_word(pdf=pdf, normalized=normalized, config=config)
     if is_include:
+        # 移動
+        pdf_move(pdf, os.path.join(config.read.dest_dir, is_include))
+        # 処理を抜ける
         return
 
+    # pdf pathから画像へ
     image = read_and_convert_pdf_to_image(pdf_path=pdf, dpi=config.preprocessing.dpi)
     img = pil2cv(image)
 
@@ -71,12 +68,11 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
     # 二値化
     ret, img_thresh = cv2.threshold(im_gray, 0, 255, cv2.THRESH_OTSU)
 
-    # ＯＣＲ実行
-    builder = pyocr.builders.TextBuilder(tesseract_layout=config.read.accuracy)
-
     # 切り取り範囲
     if config.read.reading_position == [0, 0, 0, 0]:
         block_img = img_thresh  # 全体
+        if config.preprocessing.image_debug:
+            cv2.imwrite(pdf + ".block_img" + ".jpg", block_img)
     else:
         block_img = img_thresh[
             config.read.reading_position[1] : config.read.reading_position[3],
@@ -85,32 +81,31 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
         if config.preprocessing.image_debug:
             cv2.imwrite(pdf + ".block_img" + ".jpg", block_img)
 
-    result: str = tool.image_to_string(
-        cv2pil(block_img), lang=config.read.lang, builder=builder
-    )
-    result2 = result.replace(" ", "").replace("　", "").replace("\n", "")
-    normalized = unicodedata.normalize("NFKC", result2)
-    logging.info(f"{pdf}のocr正方向読み取り結果:\n{normalized}")
-    # sorting_ruleのwordが含まれていたら移動
-    is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
-    # 処理を抜ける
-    if is_include:
-        return
+    # 回転角分読み取り
+    for r in config.read.rotate:
+        result: str = (
+            tool.image_to_string(
+                cv2pil(rotation(block_img, r)),
+                lang=config.read.lang,
+                builder=pyocr.builders.TextBuilder(
+                    tesseract_layout=config.read.accuracy
+                ),
+            )
+            .replace(" ", "")
+            .replace("　", "")
+            .replace("\n", "")
+        )
+        normalized = unicodedata.normalize("NFKC", result)
+        logging.info(f"{pdf}のocr角{r}度読み取り結果:\n{normalized}")
+        # sorting_ruleのwordが含まれていたら
+        is_include = is_include_word(pdf=pdf, normalized=normalized, config=config)
+        if is_include:
+            # 移動
+            pdf_move(pdf, os.path.join(config.read.dest_dir, is_include))
+            # 処理を抜ける
+            return
 
-    # 時計回りに90度回転
-    result: str = tool.image_to_string(
-        cv2pil(rotation(block_img)), lang=config.read.lang, builder=builder
-    )
-    result2 = result.replace(" ", "").replace("　", "").replace("\n", "")
-    normalized = unicodedata.normalize("NFKC", result2)
-    logging.info(f"{pdf}のocr時計回りに90度回転読み取り結果:\n{normalized}")
-    # sorting_ruleのwordが含まれていたら移動
-    is_include = is_include_if_move(pdf=pdf, normalized=normalized, config=config)
-    # 処理を抜ける
-    if is_include:
-        return
-
-    print(f"{pdf}は仕分け条件に該当しませんでした。")
+    logging.info(f"{pdf}は仕分け条件に該当しませんでした。")
 
 
 if __name__ == "__main__":
@@ -125,6 +120,8 @@ if __name__ == "__main__":
     config = get_config()
 
     # フォルダを作成する
+    if not os.path.exists(config.read.dest_dir):
+        os.makedirs(config.read.dest_dir)
     create_folder(config)
 
     pdfs = list_pdfs()
@@ -133,7 +130,7 @@ if __name__ == "__main__":
     args = []
     for pdf in pdfs:
         args.append((pdf, log_q))
-    if config.multiprocessing.use:  # マルチプロセス
+    if config.general.multiprocessing:  # マルチプロセス
         with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
             pool.starmap(main, args)
     else:  # 逐次処理

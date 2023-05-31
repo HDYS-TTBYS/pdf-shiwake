@@ -6,6 +6,7 @@ import shutil
 import os
 import logging
 
+
 def list_pdfs() -> str:
     """
     カレントディレクトリのPDFファイルをリストで返す
@@ -62,13 +63,13 @@ def tilt_correction(img):
     return rotate_img
 
 
-def rotation(img):
+def rotation(img, angle: int):
     """
-    画像を時計回りに90度回転する
+    画像を回転する
     """
     h, w = img.shape[:2]
     center = (w / 2, h / 2)  # 中心座標設定
-    rotation_matrix = cv2.getRotationMatrix2D(center, -90, scale=1)  # 変換行列の算出
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, scale=1)  # 変換行列の算出
     # 平行移動を加える (rotation + translation)
     affine_matrix = rotation_matrix.copy()
     affine_matrix[0][2] = affine_matrix[0][2] - w / 2 + h / 2
@@ -110,24 +111,24 @@ def delete_straight_line(img, width: int, min_line_length=500):
     return no_lines_img
 
 
-def is_include_if_move(pdf: str,normalized:str, config: Config)-> bool:
+def is_include_word(pdf: str, normalized: str, config: Config):
     """
-    sorting_ruleのwordが含まれていたら移動
+    sorting_ruleのwordが含まれているか
     """
-    is_include = False
     for rule in config.sorting_rules:
         if rule.word in normalized:
-            dist_path = os.path.join(rule.dest_dir, pdf)
-            shutil.move(pdf, dist_path)
-            logging.info(f"{pdf}を{rule.dest_dir}に移動しました。")
-            print(f"{pdf}を{rule.dest_dir}に移動しました。")
-            is_include = True
-            break
-    return is_include
+            return rule.dest_dir
+    return False
 
-def create_folder(config:Config):
+
+def pdf_move(pdf: str, dest_dir: str):
+    shutil.move(pdf, dest_dir)
+    logging.info(f"{pdf}を{dest_dir}に移動しました。")
+
+
+def create_folder(config: Config):
     # フォルダを作成する
     for dir in config.sorting_rules:
-        if not os.path.exists(dir.dest_dir):
-            os.mkdir(dir.dest_dir)
+        if not os.path.exists(os.path.join(config.read.dest_dir,dir.dest_dir)):
+            os.mkdir(os.path.join(config.read.dest_dir,dir.dest_dir))
             logging.info(f"{dir.dest_dir}フォルダを作成しました。")

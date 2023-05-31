@@ -1,0 +1,20 @@
+general:
+  multiprocessing: true #マルチコアを使用するか(trueの場合cpuとメモリを消費するが処理速度は速い)
+
+preprocessing: #前処理
+  image_debug: false #trueなら画像を出力する
+  dpi: 600 #画像解像度
+  min_line_length: 10 #直線を検知する長さの幅との割合(1~100)
+
+read: #読み取り
+  reading_position: [0, 0, 0, 0] #読み取りピクセル すべて0なら全体 [top_x, top_y, buttom_x, buttom_y] ※preprocessing.image_debugで出力された画像をペイントなどで確認する
+  rotate: [0, -90] #読み取り回転角 [0, -90, 90, 180]なら4方向
+  lang: "jpn" #言語 日本語:jpn 英語:eng
+  accuracy: 6 #読み取り精度 1~6 6が一番精度が高い
+  dest_dir: "dest"
+
+sorting_rules: #wordを含む場合dest_dirに移動 wordは半角数字、全角カナのみ
+  - word: "ワード1"
+    dest_dir: "ワード1"
+  - word: "ワード2"
+    dest_dir: "ワード2"

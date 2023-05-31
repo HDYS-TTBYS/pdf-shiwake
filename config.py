@@ -5,8 +5,8 @@ import logging
 import sys
 
 
-class Multiprocessing(BaseModel):
-    use: bool
+class General(BaseModel):
+    multiprocessing: bool
 
 
 class Preprocessing(BaseModel):
@@ -17,9 +17,10 @@ class Preprocessing(BaseModel):
 
 class Read(BaseModel):
     reading_position: List[int]
+    rotate: List[int]
     lang: str
     accuracy: int
-    available_chars: str
+    dest_dir: str
 
 
 class SortingRules(BaseModel):
@@ -28,7 +29,7 @@ class SortingRules(BaseModel):
 
 
 class Config(BaseModel):
-    multiprocessing: Multiprocessing
+    general: General
     preprocessing: Preprocessing
     read: Read
     sorting_rules: List[SortingRules]
