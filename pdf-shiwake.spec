@@ -4,10 +4,11 @@
 block_cipher = None
 binaries=[('C:\\Program Files\\Tesseract-OCR\\tesseract.exe', 'tesseract')]
 datas=[
-    ("C:\Program Files\Tesseract-OCR\\tessdata\eng.traineddata", 'data/tessdata'),
-    ("C:\Program Files\Tesseract-OCR\\tessdata\jav.traineddata", 'data/tessdata'),
-    ("C:\Program Files\Tesseract-OCR\\tessdata\jpn_vert.traineddata", 'data/tessdata'),
-    ("C:\Program Files\Tesseract-OCR\\tessdata\osd.traineddata", 'data/tessdata')
+    ("C:\Program Files\Tesseract-OCR\\tessdata\eng.traineddata", 'data\\tessdata'),
+    ("C:\Program Files\Tesseract-OCR\\tessdata\jav.traineddata", 'data\\tessdata'),
+    ("C:\Program Files\Tesseract-OCR\\tessdata\jpn.traineddata", 'data\\tessdata'),
+    ("C:\Program Files\Tesseract-OCR\\tessdata\jpn_vert.traineddata", 'data\\tessdata'),
+    ("C:\Program Files\Tesseract-OCR\\tessdata\osd.traineddata", 'data\\tessdata')
     ]
 
 a = Analysis(
