@@ -9,3 +9,6 @@ dest
 logs
 config.yaml
 share
+*.ico
+dist
+build

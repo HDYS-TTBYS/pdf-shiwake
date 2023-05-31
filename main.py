@@ -109,33 +109,38 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
 
 
 if __name__ == "__main__":
-    # ロギング
-    if not os.path.exists("logs"):
-        os.makedirs("logs")
-    log_q, listener = setup_logger_process()
-    listener.start()
-    setup_worker_logger(log_q)
+    try:
+        multiprocessing.freeze_support()
+        # ロギング
+        if not os.path.exists("logs"):
+            os.makedirs("logs")
+        log_q, listener = setup_logger_process()
+        listener.start()
+        setup_worker_logger(log_q)
 
-    # 設定
-    config = get_config()
+        # 設定
+        config = get_config()
 
-    # フォルダを作成する
-    if not os.path.exists(config.read.dest_dir):
-        os.makedirs(config.read.dest_dir)
-    create_folder(config)
+        # フォルダを作成する
+        if not os.path.exists(config.read.dest_dir):
+            os.makedirs(config.read.dest_dir)
+        create_folder(config)
 
-    pdfs = list_pdfs()
-    logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
+        pdfs = list_pdfs()
+        logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
 
-    args = []
-    for pdf in pdfs:
-        args.append((pdf, log_q))
-    if config.general.multiprocessing:  # マルチプロセス
-        with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
-            pool.starmap(main, args)
-    else:  # 逐次処理
+        args = []
         for pdf in pdfs:
-            main(pdf, log_q)
-    listener.stop()
+            args.append((pdf, log_q))
+        if config.general.multiprocessing:  # マルチプロセス
+            with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
+                pool.starmap(main, args)
+        else:  # 逐次処理
+            for pdf in pdfs:
+                main(pdf, log_q)
+        listener.stop()
 
-    logging.info("処理が完了しました。")
+        logging.info("処理が完了しました。")
+
+    except Exception as e:
+        print(e)
