@@ -36,7 +36,7 @@ class Config(BaseModel):
 
 def get_config():
     try:
-        with open("pdf-sorting.yml", "r", encoding="utf-8") as f:
+        with open("config.yaml", "r", encoding="utf-8") as f:
             c = yaml.safe_load(f)
             config = Config(**c)
             return config
