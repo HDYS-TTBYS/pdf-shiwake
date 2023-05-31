@@ -117,18 +117,18 @@ def is_include_word(pdf: str, normalized: str, config: Config):
     """
     for rule in config.sorting_rules:
         if rule.word in normalized:
-            return rule.dest_dir
+            return rule.dist_dir
     return False
 
 
-def pdf_move(pdf: str, dest_dir: str):
-    shutil.move(pdf, dest_dir)
-    logging.info(f"{pdf}を{dest_dir}に移動しました。")
+def pdf_move(pdf: str, dist_dir: str):
+    shutil.move(pdf, dist_dir)
+    logging.info(f"{pdf}を{dist_dir}に移動しました。")
 
 
 def create_folder(config: Config):
     # フォルダを作成する
     for dir in config.sorting_rules:
-        if not os.path.exists(os.path.join(config.read.dest_dir,dir.dest_dir)):
-            os.mkdir(os.path.join(config.read.dest_dir,dir.dest_dir))
-            logging.info(f"{dir.dest_dir}フォルダを作成しました。")
+        if not os.path.exists(os.path.join(config.read.dist_dir,dir.dist_dir)):
+            os.mkdir(os.path.join(config.read.dist_dir,dir.dist_dir))
+            logging.info(f"{dir.dist_dir}フォルダを作成しました。")
