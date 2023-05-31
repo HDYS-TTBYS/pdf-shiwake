@@ -49,7 +49,7 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
     is_include = is_include_word(pdf=pdf, normalized=normalized, config=config)
     if is_include:
         # 移動
-        pdf_move(pdf, os.path.join(config.read.dest_dir, is_include))
+        pdf_move(pdf, os.path.join(config.read.dist_dir, is_include))
         # 処理を抜ける
         return
 
@@ -101,7 +101,7 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
         is_include = is_include_word(pdf=pdf, normalized=normalized, config=config)
         if is_include:
             # 移動
-            pdf_move(pdf, os.path.join(config.read.dest_dir, is_include))
+            pdf_move(pdf, os.path.join(config.read.dist_dir, is_include))
             # 処理を抜ける
             return
 
@@ -109,7 +109,6 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
 
 
 if __name__ == "__main__":
-    try:
         multiprocessing.freeze_support()
         # ロギング
         if not os.path.exists("logs"):
@@ -122,8 +121,8 @@ if __name__ == "__main__":
         config = get_config()
 
         # フォルダを作成する
-        if not os.path.exists(config.read.dest_dir):
-            os.makedirs(config.read.dest_dir)
+        if not os.path.exists(config.read.dist_dir):
+            os.makedirs(config.read.dist_dir)
         create_folder(config)
 
         pdfs = list_pdfs()
@@ -142,5 +141,3 @@ if __name__ == "__main__":
 
         logging.info("処理が完了しました。")
 
-    except Exception as e:
-        print(e)

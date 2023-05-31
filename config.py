@@ -20,12 +20,12 @@ class Read(BaseModel):
     rotate: List[int]
     lang: str
     accuracy: int
-    dest_dir: str
+    dist_dir: str
 
 
 class SortingRules(BaseModel):
     word: str
-    dest_dir: str
+    dist_dir: str
 
 
 class Config(BaseModel):
