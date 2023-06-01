@@ -58,34 +58,26 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
     img = pil2cv(image)
 
     # 傾き補正
-    tilt_correction_img = tilt_correction(img)
+    img = tilt_correction(img)
     logging.info(f"{pdf}の傾きの傾き補正が終了")
     if config.preprocessing.image_debug:
-        cv2.imwrite(pdf + ".tilt_correction_img" + ".jpg", tilt_correction_img)
-
-    # モノクロ・グレースケール画像へ変換（2値化前の画像処理）
-    im_gray = cv2.cvtColor(tilt_correction_img, cv2.COLOR_BGR2GRAY)
-    # 二値化
-    ret, img_thresh = cv2.threshold(im_gray, 0, 255, cv2.THRESH_OTSU)
+        cv2.imwrite(pdf + ".tilt_correction" + ".jpg", img)
 
     # 切り取り範囲
-    if config.read.reading_position == [0, 0, 0, 0]:
-        block_img = img_thresh  # 全体
-        if config.preprocessing.image_debug:
-            cv2.imwrite(pdf + ".block_img" + ".jpg", block_img)
-    else:
-        block_img = img_thresh[
+    if config.read.reading_position != [0, 0, 0, 0]:
+        img = img[
             config.read.reading_position[1] : config.read.reading_position[3],
             config.read.reading_position[0] : config.read.reading_position[2],
-        ]  # 範囲指定
+        ]
         if config.preprocessing.image_debug:
-            cv2.imwrite(pdf + ".block_img" + ".jpg", block_img)
+            cv2.imwrite(pdf + ".block" + ".jpg", img)
+
 
     # 回転角分読み取り
     for r in config.read.rotate:
         result: str = (
             tool.image_to_string(
-                cv2pil(rotation(block_img, r)),
+                cv2pil(rotation(img, r)),
                 lang=config.read.lang,
                 builder=pyocr.builders.TextBuilder(
                     tesseract_layout=config.read.accuracy

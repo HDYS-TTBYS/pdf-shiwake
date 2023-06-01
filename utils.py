@@ -31,13 +31,13 @@ def tilt_correction(img):
     center = (width / 2, height / 2)  # 中心座標設定
 
     # モノクロ・グレースケール画像へ変換
-    im_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # 二値化
-    ret, img_thresh = cv2.threshold(im_gray, 0, 255, cv2.THRESH_OTSU)
+    ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_OTSU)
 
     contours, hierarchy = cv2.findContours(
-        img_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
     )  # 領域検出
 
     r = []
@@ -56,11 +56,11 @@ def tilt_correction(img):
 
     trans = cv2.getRotationMatrix2D(center, angle, scale=1)  # 変換行列の算出
 
-    rotate_img = cv2.warpAffine(
+    img = cv2.warpAffine(
         img, trans, (width, height), flags=cv2.INTER_CUBIC
     )  # 元画像を回転
 
-    return rotate_img
+    return img
 
 
 def rotation(img, angle: int):
