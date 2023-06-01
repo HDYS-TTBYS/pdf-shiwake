@@ -8,6 +8,7 @@ import sys
 class General(BaseModel):
     multiprocessing: bool
     full_log: bool
+    watch: bool
 
 
 class Preprocessing(BaseModel):

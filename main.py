@@ -20,7 +20,7 @@ import os
 import multiprocessing
 import psutil
 from myloggin import setup_logger_process, setup_worker_logger
-
+import time
 
 def main(pdf: str, q: multiprocessing.Queue) -> None:
     setup_worker_logger(q)
@@ -125,18 +125,26 @@ if __name__ == "__main__":
         os.makedirs(config.read.dist_dir)
     create_folder(config)
 
-    pdfs = list_pdfs()
-    logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
-
-    args = []
-    for pdf in pdfs:
-        args.append((pdf, log_q))
-    if config.general.multiprocessing:  # マルチプロセス
-        with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
-            pool.starmap(main, args)
-    else:  # 逐次処理
+    def do():
+        pdfs = list_pdfs()
+        logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
+        args = []
         for pdf in pdfs:
-            main(pdf, log_q)
+            args.append((pdf, log_q))
+        if config.general.multiprocessing:  # マルチプロセス
+            with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
+                pool.starmap(main, args)
+        else:  # 逐次処理
+            for pdf in pdfs:
+                main(pdf, log_q)
+        if config.general.watch:
+            time.sleep(3)
+            do()
+    try:
+        do()
+    except KeyboardInterrupt:
+        logging.info("処理が中断されました。")
+
     listener.stop()
 
     logging.info("処理が完了しました。")
