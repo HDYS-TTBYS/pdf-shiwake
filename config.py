@@ -7,6 +7,7 @@ import sys
 
 class General(BaseModel):
     multiprocessing: bool
+    full_log: bool
 
 
 class Preprocessing(BaseModel):
@@ -42,5 +43,5 @@ def get_config():
             config = Config(**c)
             return config
     except:
-        logging.critical("設定ファイルが見つかりません。")
+        logging.critical("設定ファイル[config.yaml]が見つかりません。")
         sys.exit(1)

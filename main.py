@@ -1,8 +1,7 @@
 import pyocr
 import sys
 import logging
-import yaml
-from config import Config, get_config
+from config import get_config
 from pypdf import PdfReader
 from convert import read_and_convert_pdf_to_image, pil2cv
 import cv2
@@ -43,7 +42,12 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
     # PDF のソースコードからページのテキストを直接抽出
     text = extract_text(pdf).replace(" ", "").replace("　", "").replace("\n", "")
     normalized = unicodedata.normalize("NFKC", text)
-    logging.info(f"{pdf}のソースコードからの抽出結果\n:{normalized}")
+    try:
+        if not config.general.full_log:
+            n = normalized[0:100] + "..."
+    except:
+        n = normalized
+    logging.info(f"{pdf}のソースコードからの抽出結果\n:{n}")
 
     # sorting_ruleのwordが含まれていたら
     is_include = is_include_word(pdf=pdf, normalized=normalized, config=config)
@@ -72,7 +76,6 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
         if config.preprocessing.image_debug:
             cv2.imwrite(pdf + ".block" + ".jpg", img)
 
-
     # 回転角分読み取り
     for r in config.read.rotate:
         result: str = (
@@ -88,7 +91,12 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
             .replace("\n", "")
         )
         normalized = unicodedata.normalize("NFKC", result)
-        logging.info(f"{pdf}のocr角{r}度読み取り結果:\n{normalized}")
+        try:
+            if not config.general.full_log:
+                n = normalized[0:100] + "..."
+        except:
+            n = normalized
+        logging.info(f"{pdf}のocr角{r}度読み取り結果:\n{n}")
         # sorting_ruleのwordが含まれていたら
         is_include = is_include_word(pdf=pdf, normalized=normalized, config=config)
         if is_include:
@@ -101,35 +109,34 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
 
 
 if __name__ == "__main__":
-        multiprocessing.freeze_support()
-        # ロギング
-        if not os.path.exists("logs"):
-            os.makedirs("logs")
-        log_q, listener = setup_logger_process()
-        listener.start()
-        setup_worker_logger(log_q)
+    multiprocessing.freeze_support()
+    # ロギング
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+    log_q, listener = setup_logger_process()
+    listener.start()
+    setup_worker_logger(log_q)
 
-        # 設定
-        config = get_config()
+    # 設定
+    config = get_config()
 
-        # フォルダを作成する
-        if not os.path.exists(config.read.dist_dir):
-            os.makedirs(config.read.dist_dir)
-        create_folder(config)
+    # フォルダを作成する
+    if not os.path.exists(config.read.dist_dir):
+        os.makedirs(config.read.dist_dir)
+    create_folder(config)
 
-        pdfs = list_pdfs()
-        logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
+    pdfs = list_pdfs()
+    logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
 
-        args = []
+    args = []
+    for pdf in pdfs:
+        args.append((pdf, log_q))
+    if config.general.multiprocessing:  # マルチプロセス
+        with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
+            pool.starmap(main, args)
+    else:  # 逐次処理
         for pdf in pdfs:
-            args.append((pdf, log_q))
-        if config.general.multiprocessing:  # マルチプロセス
-            with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
-                pool.starmap(main, args)
-        else:  # 逐次処理
-            for pdf in pdfs:
-                main(pdf, log_q)
-        listener.stop()
+            main(pdf, log_q)
+    listener.stop()
 
-        logging.info("処理が完了しました。")
-
+    logging.info("処理が完了しました。")
