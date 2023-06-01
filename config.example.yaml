@@ -1,5 +1,6 @@
 general:
   multiprocessing: true #マルチコアを使用するか(trueの場合cpuとメモリを消費するが処理速度は速い)
+  full_log: false #trueなら読み取り結果をすべてログ出力する
 
 preprocessing: #前処理
   image_debug: false #trueなら画像を出力する
