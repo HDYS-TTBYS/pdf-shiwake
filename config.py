@@ -10,6 +10,7 @@ class General(BaseModel):
     full_log: bool
     watch: bool
     dist_dir: str
+    threshold: int
 
 
 class Preprocessing(BaseModel):
@@ -23,7 +24,6 @@ class Read(BaseModel):
     rotate: List[int]
     lang: str
     accuracy: int
-    threshold: int
 
 
 class SortingRules(BaseModel):

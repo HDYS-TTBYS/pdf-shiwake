@@ -43,16 +43,17 @@ def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
     # PDF のソースコードからページのテキストを直接抽出
     text = extract_text(pdf).replace(" ", "").replace("　", "").replace("\n", "")
     normalized = unicodedata.normalize("NFKC", text)
+    n = normalized
     try:
         if not config.general.full_log:
             n = normalized[0:70] + "..."
-    finally:
+    except:
         n = normalized
     logging.info(f"{pdf}のソースコードからの抽出結果\n{n}\n")
 
     # sorting_ruleのwordが含まれていたら
     dist_dir, match_rate, match_str = is_include_word_diff(
-        normalized=normalized, config=config, threshold=config.read.threshold
+        normalized=normalized, config=config, threshold=config.general.threshold
     )
     if dist_dir:
         logging.info(f"{pdf}の類似度、一致率:{match_rate}、一致結果:{dist_dir}|{match_str}")
@@ -92,16 +93,17 @@ def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
             .replace("\n", "")
         )
         normalized = unicodedata.normalize("NFKC", result)
+        n = normalized
         try:
             if not config.general.full_log:
                 n = normalized[0:70] + "..."
-        finally:
+        except:
             n = normalized
         logging.info(f"{pdf}のocr角{r}度読み取り結果\n{n}\n")
 
         # sorting_ruleのwordが含まれていたら
         dist_dir, match_rate, match_str = is_include_word_diff(
-            normalized=normalized, config=config, threshold=config.read.threshold
+            normalized=normalized, config=config, threshold=config.general.threshold
         )
         if dist_dir:
             logging.info(f"{pdf}の類似度、一致率:{match_rate}、一致結果:{dist_dir}|{match_str}")
