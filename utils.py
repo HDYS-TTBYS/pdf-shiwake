@@ -5,6 +5,7 @@ from config import Config
 import shutil
 import os
 import logging
+import difflib
 
 
 def list_pdfs() -> str:
@@ -56,9 +57,7 @@ def tilt_correction(img):
 
     trans = cv2.getRotationMatrix2D(center, angle, scale=1)  # 変換行列の算出
 
-    img = cv2.warpAffine(
-        img, trans, (width, height), flags=cv2.INTER_CUBIC
-    )  # 元画像を回転
+    img = cv2.warpAffine(img, trans, (width, height), flags=cv2.INTER_CUBIC)  # 元画像を回転
 
     return img
 
@@ -111,7 +110,7 @@ def delete_straight_line(img, width: int, min_line_length=500):
     return no_lines_img
 
 
-def is_include_word(pdf: str, normalized: str, config: Config):
+def is_include_word(normalized: str, config: Config):
     """
     sorting_ruleのwordが含まれているか
     """
@@ -119,6 +118,25 @@ def is_include_word(pdf: str, normalized: str, config: Config):
         if rule.word in normalized:
             return rule.dist_dir
     return False
+
+
+def is_include_word_diff(normalized: str, config: Config, threshold=70):
+    """
+    sorting_ruleのwordが含まれているか(類似度が一定以上)
+    """
+    try:
+        for rule in config.sorting_rules:
+            p = 0
+            while p <= len(normalized) - len(rule.word):
+                s = difflib.SequenceMatcher(
+                    None, rule.word, normalized[p : p + len(rule.word)]
+                ).ratio()
+                if float(s) >= (threshold / 100):
+                    return rule.dist_dir, float(s), normalized[p : p + len(rule.word)]
+                p += 1
+    except:
+        return False, False, False
+    return False, False, False
 
 
 def pdf_move(pdf: str, dist_dir: str):
@@ -129,6 +147,6 @@ def pdf_move(pdf: str, dist_dir: str):
 def create_folder(config: Config):
     # フォルダを作成する
     for dir in config.sorting_rules:
-        if not os.path.exists(os.path.join(config.read.dist_dir,dir.dist_dir)):
-            os.mkdir(os.path.join(config.read.dist_dir,dir.dist_dir))
+        if not os.path.exists(os.path.join(config.general.dist_dir, dir.dist_dir)):
+            os.mkdir(os.path.join(config.general.dist_dir, dir.dist_dir))
             logging.info(f"{dir.dist_dir}フォルダを作成しました。")

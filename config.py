@@ -3,12 +3,13 @@ from typing import List
 import yaml
 import logging
 import sys
-import multiprocessing
+
 
 class General(BaseModel):
     multiprocessing: bool
     full_log: bool
     watch: bool
+    dist_dir: str
 
 
 class Preprocessing(BaseModel):
@@ -22,7 +23,7 @@ class Read(BaseModel):
     rotate: List[int]
     lang: str
     accuracy: int
-    dist_dir: str
+    threshold: int
 
 
 class SortingRules(BaseModel):
