@@ -23,7 +23,7 @@ from myloggin import setup_logger_process, setup_worker_logger
 import time
 
 
-def main(pdf: str, q: multiprocessing.Queue) -> None:
+def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
     setup_worker_logger(q)
     # tesseractを使用
     tools = pyocr.get_available_tools()
@@ -33,7 +33,7 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
     tool = tools[0]
 
     # 設定
-    config = get_config()
+    config = get_config(lock)
 
     reader = PdfReader(pdf)
     if len(reader.pages) > 1:
@@ -82,9 +82,7 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
     for r in config.read.rotate:
         result: str = (
             tool.image_to_string(
-                cv2pil(rotation(img, r)),
-                lang=config.read.lang,
-                builder=builder
+                cv2pil(rotation(img, r)), lang=config.read.lang, builder=builder
             )
             .replace(" ", "")
             .replace("　", "")
@@ -118,7 +116,8 @@ if __name__ == "__main__":
     setup_worker_logger(log_q)
 
     # 設定
-    config = get_config()
+    lock = multiprocessing.Manager().Lock()
+    config = get_config(lock)
 
     # フォルダを作成する
     if not os.path.exists(config.read.dist_dir):
@@ -130,13 +129,13 @@ if __name__ == "__main__":
         logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
         args = []
         for pdf in pdfs:
-            args.append((pdf, log_q))
+            args.append((pdf, log_q, lock))
         if config.general.multiprocessing:  # マルチプロセス
             with multiprocessing.Pool(psutil.cpu_count(logical=False)) as pool:
                 pool.starmap(main, args)
         else:  # 逐次処理
             for pdf in pdfs:
-                main(pdf, log_q)
+                main(pdf, log_q, lock)
         if config.general.watch:
             time.sleep(3)
             do()
