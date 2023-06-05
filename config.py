@@ -46,7 +46,6 @@ def get_config(lock):
             return config
     except:
         logging.critical("設定ファイル[config.yaml]が見つかりません。")
-        lock.release()
         sys.exit(1)
     finally:
         lock.release()
