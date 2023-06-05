@@ -44,7 +44,7 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
     normalized = unicodedata.normalize("NFKC", text)
     try:
         if not config.general.full_log:
-            n = normalized[0:100] + "..."
+            n = normalized[0:70] + "..."
     except:
         n = normalized
     logging.info(f"{pdf}のソースコードからの抽出結果\n:{n}")
@@ -93,7 +93,7 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
         normalized = unicodedata.normalize("NFKC", result)
         try:
             if not config.general.full_log:
-                n = normalized[0:100] + "..."
+                n = normalized[0:70] + "..."
         except:
             n = normalized
         logging.info(f"{pdf}のocr角{r}度読み取り結果:\n{n}")
