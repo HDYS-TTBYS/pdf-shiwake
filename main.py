@@ -22,6 +22,7 @@ import psutil
 from myloggin import setup_logger_process, setup_worker_logger
 import time
 
+
 def main(pdf: str, q: multiprocessing.Queue) -> None:
     setup_worker_logger(q)
     # tesseractを使用
@@ -77,14 +78,13 @@ def main(pdf: str, q: multiprocessing.Queue) -> None:
             cv2.imwrite(pdf + ".block" + ".jpg", img)
 
     # 回転角分読み取り
+    builder = pyocr.builders.TextBuilder(tesseract_layout=config.read.accuracy)
     for r in config.read.rotate:
         result: str = (
             tool.image_to_string(
                 cv2pil(rotation(img, r)),
                 lang=config.read.lang,
-                builder=pyocr.builders.TextBuilder(
-                    tesseract_layout=config.read.accuracy
-                ),
+                builder=builder
             )
             .replace(" ", "")
             .replace("　", "")
@@ -140,6 +140,7 @@ if __name__ == "__main__":
         if config.general.watch:
             time.sleep(3)
             do()
+
     try:
         do()
     except KeyboardInterrupt:
