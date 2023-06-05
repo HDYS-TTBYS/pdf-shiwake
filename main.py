@@ -9,9 +9,9 @@ from utils import (
     list_pdfs,
     tilt_correction,
     rotation,
-    is_include_word,
     create_folder,
     pdf_move,
+    is_include_word_diff,
 )
 from convert import cv2pil
 from pdfminer.high_level import extract_text
@@ -46,15 +46,18 @@ def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
     try:
         if not config.general.full_log:
             n = normalized[0:70] + "..."
-    except:
+    finally:
         n = normalized
-    logging.info(f"{pdf}のソースコードからの抽出結果\n:{n}")
+    logging.info(f"{pdf}のソースコードからの抽出結果\n{n}\n")
 
     # sorting_ruleのwordが含まれていたら
-    is_include = is_include_word(pdf=pdf, normalized=normalized, config=config)
-    if is_include:
+    dist_dir, match_rate, match_str = is_include_word_diff(
+        normalized=normalized, config=config, threshold=config.read.threshold
+    )
+    if dist_dir:
+        logging.info(f"{pdf}の類似度、一致率:{match_rate}、一致結果:{dist_dir}|{match_str}")
         # 移動
-        pdf_move(pdf, os.path.join(config.read.dist_dir, is_include))
+        pdf_move(pdf, os.path.join(config.general.dist_dir, dist_dir))
         # 処理を抜ける
         return
 
@@ -92,17 +95,23 @@ def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
         try:
             if not config.general.full_log:
                 n = normalized[0:70] + "..."
-        except:
+        finally:
             n = normalized
-        logging.info(f"{pdf}のocr角{r}度読み取り結果:\n{n}")
+        logging.info(f"{pdf}のocr角{r}度読み取り結果\n{n}\n")
+
         # sorting_ruleのwordが含まれていたら
-        is_include = is_include_word(pdf=pdf, normalized=normalized, config=config)
-        if is_include:
+        dist_dir, match_rate, match_str = is_include_word_diff(
+            normalized=normalized, config=config, threshold=config.read.threshold
+        )
+        if dist_dir:
+            logging.info(f"{pdf}の類似度、一致率:{match_rate}、一致結果:{dist_dir}|{match_str}")
             # 移動
-            pdf_move(pdf, os.path.join(config.read.dist_dir, is_include))
+            pdf_move(pdf, os.path.join(config.general.dist_dir, dist_dir))
             # 処理を抜ける
             return
 
+    # 該当しなかったらdist_dir直下へ移動
+    pdf_move(pdf, os.path.join(config.general.dist_dir))
     logging.info(f"{pdf}は仕分け条件に該当しませんでした。")
 
 
@@ -120,8 +129,8 @@ if __name__ == "__main__":
     config = get_config(lock)
 
     # フォルダを作成する
-    if not os.path.exists(config.read.dist_dir):
-        os.makedirs(config.read.dist_dir)
+    if not os.path.exists(config.general.dist_dir):
+        os.makedirs(config.general.dist_dir)
     create_folder(config)
 
     def do():
