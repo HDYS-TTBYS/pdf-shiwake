@@ -3,7 +3,7 @@ from typing import List
 import yaml
 import logging
 import sys
-
+import multiprocessing
 
 class General(BaseModel):
     multiprocessing: bool
@@ -37,8 +37,9 @@ class Config(BaseModel):
     sorting_rules: List[SortingRules]
 
 
-def get_config():
+def get_config(lock):
     try:
+        lock.acquire()
         with open("config.yaml", "r", encoding="utf-8") as f:
             c = yaml.safe_load(f)
             config = Config(**c)
@@ -46,3 +47,5 @@ def get_config():
     except:
         logging.critical("設定ファイル[config.yaml]が見つかりません。")
         sys.exit(1)
+    finally:
+        lock.release()
