@@ -2,12 +2,14 @@ from pdf2image import convert_from_path
 import numpy as np
 import cv2
 from PIL import Image
+import os
+import sys
 
-def read_and_convert_pdf_to_image(pdf_path: str, dpi=400):
+def convert_pdfpath_to_image(pdf_path: str, dpi=400):
     """
     PDFのパスからPillowのイメージオブジェクトにして返す
     """
-    images = convert_from_path(pdf_path, dpi=dpi, fmt="jpg")
+    images = convert_from_path(pdf_path, dpi=dpi, fmt="jpg",poppler_path=os.path.join(sys.prefix, "popper"))
     return images[0]
 
 def pil2cv(image):
