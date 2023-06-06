@@ -3,7 +3,7 @@ import sys
 import logging
 from config import get_config
 from pypdf import PdfReader
-from convert import read_and_convert_pdf_to_image, pil2cv
+from convert import convert_pdfpath_to_image, pil2cv
 import cv2
 from utils import (
     list_pdfs,
@@ -63,7 +63,7 @@ def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
         return
 
     # pdf pathから画像へ
-    image = read_and_convert_pdf_to_image(pdf_path=pdf, dpi=config.preprocessing.dpi)
+    image = convert_pdfpath_to_image(pdf_path=pdf, dpi=config.preprocessing.dpi)
     img = pil2cv(image)
 
     # 傾き補正
@@ -119,12 +119,18 @@ def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+    # PATH登録
+    os.environ["PATH"] = os.environ["PATH"] + os.path.join(sys.prefix, "tesseract")
+    os.environ["PATH"] = os.environ["PATH"] + os.path.join(sys.prefix, "popper")
+
     # ロギング
     if not os.path.exists("logs"):
         os.makedirs("logs")
     log_q, listener = setup_logger_process()
     listener.start()
     setup_worker_logger(log_q)
+
+    logging.info(f"sys.prefix:{sys.prefix}")
 
     # 設定
     lock = multiprocessing.Manager().Lock()
