@@ -1,8 +1,8 @@
 general:
-  multiprocessing: true #マルチコアを使用するか(trueの場合cpuとメモリを消費するが処理速度は速い)
+  multiprocessing: false #マルチコアを使用するか(trueの場合cpuとメモリを消費するが処理速度は速い)
   full_log: false #trueなら読み取り結果をすべてログ出力する
-  watch: true #trueなら監視モードで実行
-  dest_dir: "dist"
+  watch: false #trueなら監視モードで実行
+  dist_dir: "仕分け済み"
   threshold: 65 #一致したとみなす閾値
 
 preprocessing: #前処理
@@ -18,6 +18,4 @@ read: #読み取り
 
 sorting_rules: #wordを含む場合general.dest_dir\dest_dirに移動 wordは半角数字、全角カナのみ 上から短絡的に評価される
   - word: "ワード1"
-    dest_dir: "ワード1"
-  - word: "ワード2"
-    dest_dir: "ワード2"
+    dist_dir: "ワード1"
