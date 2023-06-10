@@ -132,11 +132,16 @@ def is_include_word_diff(normalized: str, config: Config, threshold=70):
                     None, rule.word, normalized[p : p + len(rule.word)]
                 ).ratio()
                 if float(s) >= (threshold / 100):
-                    return rule.dist_dir, float(s), normalized[p : p + len(rule.word)]
+                    return (
+                        rule.dist_dir,
+                        float(s),
+                        rule.word,
+                        normalized[p : p + len(rule.word)],
+                    )
                 p += 1
     except:
-        return False, False, False
-    return False, False, False
+        return False, False, False, False
+    return False, False, False, False
 
 
 def pdf_move(pdf: str, dist_dir: str):
