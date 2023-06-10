@@ -44,20 +44,18 @@ def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
         # PDF のソースコードからページのテキストを直接抽出
         text = extract_text(pdf).replace(" ", "").replace("　", "").replace("\n", "")
         normalized = unicodedata.normalize("NFKC", text)
-        n = normalized
-        try:
-            if not config.general.full_log:
-                n = normalized[0:70] + "..."
-        except:
+        if not config.general.full_log:
+            n = normalized[0:30] + "..."
+        else:
             n = normalized
-        logging.info(f"{pdf}のソースコードからの抽出結果\n{n}\n")
+        logging.info(f"{pdf}のソースコードからの抽出結果:{n}")
 
         # sorting_ruleのwordが含まれていたら
-        dist_dir, match_rate, match_str = is_include_word_diff(
+        dist_dir, match_rate, serch_word, match_str = is_include_word_diff(
             normalized=normalized, config=config, threshold=config.general.threshold
         )
         if dist_dir:
-            logging.info(f"{pdf}の類似度、一致率:{match_rate}、一致結果:{dist_dir}|{match_str}")
+            logging.info(f"{pdf}の類似度、一致率:{match_rate}、一致結果:{serch_word}|{match_str}")
             # 移動
             pdf_move(pdf, os.path.join(config.general.dist_dir, dist_dir))
             # 処理を抜ける
@@ -75,39 +73,41 @@ def main(pdf: str, q: multiprocessing.Queue, lock) -> None:
 
         # 切り取り範囲
         if config.read.reading_position != [0, 0, 0, 0]:
-            img = img[
+            cut_img = img[
                 config.read.reading_position[1] : config.read.reading_position[3],
                 config.read.reading_position[0] : config.read.reading_position[2],
             ]
             if config.preprocessing.image_debug:
                 cv2.imwrite(pdf + ".block" + ".jpg", img)
+        else:
+            cut_img = img
 
         # 回転角分読み取り
         builder = pyocr.builders.TextBuilder(tesseract_layout=config.read.accuracy)
         for r in config.read.rotate:
             result: str = (
                 tool.image_to_string(
-                    cv2pil(rotation(img, r)), lang=config.read.lang, builder=builder
+                    cv2pil(rotation(cut_img, r)), lang=config.read.lang, builder=builder
                 )
                 .replace(" ", "")
                 .replace("　", "")
                 .replace("\n", "")
             )
             normalized = unicodedata.normalize("NFKC", result)
-            n = normalized
-            try:
-                if not config.general.full_log:
-                    n = normalized[0:70] + "..."
-            except:
+            if not config.general.full_log:
+                n = normalized[0:30] + "..."
+            else:
                 n = normalized
-            logging.info(f"{pdf}のocr角{r}度読み取り結果\n{n}\n")
+            logging.info(f"{pdf}のocr角{r}度読み取り結果:{n}")
 
             # sorting_ruleのwordが含まれていたら
-            dist_dir, match_rate, match_str = is_include_word_diff(
+            dist_dir, match_rate, serch_word, match_str = is_include_word_diff(
                 normalized=normalized, config=config, threshold=config.general.threshold
             )
             if dist_dir:
-                logging.info(f"{pdf}の類似度、一致率:{match_rate}、一致結果:{dist_dir}|{match_str}")
+                logging.info(
+                    f"{pdf}の類似度、一致率:{match_rate}、一致結果:{serch_word}|{match_str}"
+                )
                 # 移動
                 pdf_move(pdf, os.path.join(config.general.dist_dir, dist_dir))
                 # 処理を抜ける
@@ -140,14 +140,13 @@ if __name__ == "__main__":
     lock = multiprocessing.Manager().Lock()
     config = get_config(lock)
 
-    # フォルダを作成する
-    if not os.path.exists(config.general.dist_dir):
-        os.makedirs(config.general.dist_dir)
-    create_folder(config)
-
     def do():
+        # フォルダを作成する
+        if not os.path.exists(config.general.dist_dir):
+            os.makedirs(config.general.dist_dir)
+        create_folder(config)
         pdfs = list_pdfs()
-        logging.info(f"{len(pdfs)}件のファイルが見つかりました。")
+        print(f"{len(pdfs)}件のファイルが見つかりました。")
         args = []
         for pdf in pdfs:
             args.append((pdf, log_q, lock))
